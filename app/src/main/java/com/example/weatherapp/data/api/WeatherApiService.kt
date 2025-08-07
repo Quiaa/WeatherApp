@@ -9,7 +9,6 @@ import retrofit2.http.Query
 
 // This interface defines the API endpoints for OpenWeatherMap.
 interface WeatherApiService {
-
     @GET("weather")
     suspend fun getCurrentWeather(
         @Query("q") cityName: String,
@@ -20,6 +19,22 @@ interface WeatherApiService {
     @GET("forecast")
     suspend fun getForecast(
         @Query("q") cityName: String,
+        @Query("appid") apiKey: String,
+        @Query("units") units: String = Constants.DEFAULT_UNITS
+    ): Response<ForecastResponse>
+
+    @GET("weather")
+    suspend fun getCurrentWeatherByCoord(
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double,
+        @Query("appid") apiKey: String,
+        @Query("units") units: String = Constants.DEFAULT_UNITS
+    ): Response<WeatherResponse>
+
+    @GET("forecast")
+    suspend fun getForecastByCoord(
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double,
         @Query("appid") apiKey: String,
         @Query("units") units: String = Constants.DEFAULT_UNITS
     ): Response<ForecastResponse>

@@ -10,4 +10,5 @@ import kotlinx.coroutines.flow.Flow
 interface WeatherRepository {
     fun getCurrentWeather(cityName: String, apiKey: String): Flow<Resource<WeatherEntity>>
     fun getForecast(cityName: String, apiKey: String): Flow<Resource<List<ForecastEntity>>>
+    suspend fun fetchCityNameForCurrentLocation(): Resource<String>
 }

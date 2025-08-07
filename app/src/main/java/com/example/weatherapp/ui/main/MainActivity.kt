@@ -1,10 +1,15 @@
 package com.example.weatherapp.ui.main
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
@@ -22,27 +27,46 @@ class MainActivity : AppCompatActivity() {
     private lateinit var forecastAdapter: ForecastAdapter
     private val viewModel: MainViewModel by viewModels()
 
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                viewModel.loadWeatherForCurrentLocation()
+            } else {
+                Toast.makeText(this, "Location permission is required for automatic weather.", Toast.LENGTH_LONG).show()
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
-        binding.viewModel = viewModel
         binding.lifecycleOwner = this
 
         setupRecyclerView()
+        checkAndRequestLocationPermission()
 
         observeWeatherState()
         observeForecastState()
 
         binding.btnSearch.setOnClickListener {
             val cityName = binding.etCityName.text.toString()
-            if (cityName.isNotEmpty()) {
-                viewModel.fetchWeather(cityName)
-            } else {
-                Toast.makeText(this, "Please enter a city name", Toast.LENGTH_SHORT).show()
+            viewModel.setCity(cityName)
+        }
+    }
+    private fun checkAndRequestLocationPermission() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                viewModel.loadWeatherForCurrentLocation()
+            }
+            else -> {
+                requestPermissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
             }
         }
     }
+
     private fun setupRecyclerView() {
         forecastAdapter = ForecastAdapter()
         binding.rvForecast.apply {
@@ -56,11 +80,10 @@ class MainActivity : AppCompatActivity() {
             when (resource) {
                 is Resource.Success -> {
                     binding.progressBar.visibility = View.GONE
-                    updateUI(resource.data) // Pass WeatherEntity to updateUI
+                    updateUI(resource.data)
                 }
                 is Resource.Error -> {
                     binding.progressBar.visibility = View.GONE
-                    // If there is an error, but we have old data, updateUI with it
                     updateUI(resource.data)
                     Toast.makeText(this, resource.message, Toast.LENGTH_LONG).show()
                 }
