@@ -7,45 +7,24 @@ import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.data.model.WeatherResponse
 import com.example.weatherapp.data.repository.WeatherRepository
 import com.example.weatherapp.util.Constants
+import com.example.weatherapp.util.Resource
 import kotlinx.coroutines.launch
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(private val weatherRepository: WeatherRepository) : ViewModel() {
-
-    // LiveData to hold to weather data. UI will observe this.
-    private val _weatherData = MutableLiveData<WeatherResponse>()
-    val weatherData: LiveData<WeatherResponse> = _weatherData
-
-    // LiveData for error massages.
-    private val _error = MutableLiveData<String>()
-    val error: LiveData<String> = _error
-
-    // LiveData for loading state.
-    private val _isLoading = MutableLiveData<Boolean>()
-    val isLoading: LiveData<Boolean> = _isLoading
+    private val _weatherState = MutableLiveData<Resource<WeatherResponse>>()
+    val weatherState: LiveData<Resource<WeatherResponse>> = _weatherState
 
     fun fetchWeather(cityName: String) {
-        _isLoading.value = true
-        // Launch a coroutline in the viewModelScope.
-        // This scope is tied to the ViewModel's lifecycle.
+        // Start by posting the Loading state
+        _weatherState.postValue(Resource.Loading())
+
         viewModelScope.launch {
-            try {
-                val response = weatherRepository.getCurrentWeather(cityName, Constants.API_KEY)
-                if (response.isSuccessful) {
-                    _weatherData.postValue(response.body())
-                }
-                else {
-                    _error.postValue("Error: ${response.message()}")
-                }
-            }
-            catch (e: Exception) {
-                _error.postValue("Error: ${e.message}")
-            }
-            finally {
-                _isLoading.value = false
-            }
+            // The repository now handles the try-catch and response parsing.
+            val result = weatherRepository.getCurrentWeather(cityName, Constants.API_KEY)
+            _weatherState.postValue(result)
         }
     }
 }
