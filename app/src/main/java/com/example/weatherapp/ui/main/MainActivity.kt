@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.weatherapp.R
 import com.example.weatherapp.databinding.ActivityMainBinding
@@ -13,10 +14,12 @@ import com.example.weatherapp.util.Constants
 import com.example.weatherapp.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import com.example.weatherapp.data.db.WeatherEntity
+import com.example.weatherapp.ui.adapter.ForecastAdapter
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
+    private lateinit var forecastAdapter: ForecastAdapter
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,7 +29,10 @@ class MainActivity : AppCompatActivity() {
         binding.viewModel = viewModel
         binding.lifecycleOwner = this
 
+        setupRecyclerView()
+
         observeWeatherState()
+        observeForecastState()
 
         binding.btnSearch.setOnClickListener {
             val cityName = binding.etCityName.text.toString()
@@ -35,6 +41,13 @@ class MainActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(this, "Please enter a city name", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+    private fun setupRecyclerView() {
+        forecastAdapter = ForecastAdapter()
+        binding.rvForecast.apply {
+            adapter = forecastAdapter
+            layoutManager = LinearLayoutManager(this@MainActivity)
         }
     }
 
@@ -50,6 +63,23 @@ class MainActivity : AppCompatActivity() {
                     // If there is an error, but we have old data, updateUI with it
                     updateUI(resource.data)
                     Toast.makeText(this, resource.message, Toast.LENGTH_LONG).show()
+                }
+                is Resource.Loading -> {
+                    binding.progressBar.visibility = View.VISIBLE
+                }
+            }
+        }
+    }
+    private fun observeForecastState() {
+        viewModel.forecastState.observe(this) { resource ->
+            when (resource) {
+                is Resource.Success -> {
+                    binding.progressBar.visibility = View.GONE
+                    forecastAdapter.submitList(resource.data)
+                }
+                is Resource.Error -> {
+                    forecastAdapter.submitList(resource.data ?: emptyList())
+                    Toast.makeText(this, resource.message, Toast.LENGTH_SHORT).show()
                 }
                 is Resource.Loading -> {
                     binding.progressBar.visibility = View.VISIBLE

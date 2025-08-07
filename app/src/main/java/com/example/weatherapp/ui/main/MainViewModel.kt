@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.weatherapp.data.db.ForecastEntity
 import com.example.weatherapp.data.db.WeatherEntity
 import com.example.weatherapp.data.repository.WeatherRepository
 import com.example.weatherapp.util.Constants
@@ -21,13 +22,16 @@ class MainViewModel @Inject constructor(
     // The LiveData now holds a Resource of WeatherEntity
     private val _weatherState = MutableLiveData<Resource<WeatherEntity>>()
     val weatherState: LiveData<Resource<WeatherEntity>> = _weatherState
+    private val _forecastState = MutableLiveData<Resource<List<ForecastEntity>>>()
+    val forecastState: LiveData<Resource<List<ForecastEntity>>> = _forecastState
 
     fun fetchWeather(cityName: String) {
-        // The repository now returns a Flow. We collect it in the ViewModel.
         weatherRepository.getCurrentWeather(cityName.trim(), Constants.API_KEY)
-            .onEach { result ->
-                _weatherState.value = result
-            }
-            .launchIn(viewModelScope) // launchIn is a concise way to collect a flow in a scope.
+            .onEach { result -> _weatherState.value = result }
+            .launchIn(viewModelScope)
+
+        weatherRepository.getForecast(cityName.trim(), Constants.API_KEY)
+            .onEach { result -> _forecastState.value = result }
+            .launchIn(viewModelScope)
     }
 }

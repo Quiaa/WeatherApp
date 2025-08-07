@@ -3,6 +3,7 @@ package com.example.weatherapp.di
 import android.content.Context
 import androidx.room.Room
 import com.example.weatherapp.data.api.WeatherApiService
+import com.example.weatherapp.data.db.ForecastDao
 import com.example.weatherapp.data.db.WeatherDao
 import com.example.weatherapp.data.db.WeatherDatabase
 import com.example.weatherapp.data.repository.WeatherRepository
@@ -50,9 +51,12 @@ object AppModule {
 
     @Provides
     @Singleton
-    // When something asks for a WeatherRepository, provide a WeatherRepositoryImpl.
-    fun provideWeatherRepository(apiService: WeatherApiService, dao: WeatherDao): WeatherRepository {
-        return WeatherRepositoryImpl(apiService, dao)
+    fun provideWeatherRepository(
+        apiService: WeatherApiService,
+        weatherDao: WeatherDao,
+        forecastDao: ForecastDao
+    ): WeatherRepository {
+        return WeatherRepositoryImpl(apiService, weatherDao, forecastDao)
     }
 
     @Provides
@@ -62,12 +66,18 @@ object AppModule {
             context,
             WeatherDatabase::class.java,
             "weather_database.db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides
     @Singleton
     fun provideWeatherDao(database: WeatherDatabase): WeatherDao {
         return database.weatherDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideForecastDao(database: WeatherDatabase): ForecastDao {
+        return database.forecastDao()
     }
 }
