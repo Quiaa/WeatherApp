@@ -1,12 +1,17 @@
 package com.example.weatherapp.di
 
+import android.content.Context
+import androidx.room.Room
 import com.example.weatherapp.data.api.WeatherApiService
+import com.example.weatherapp.data.db.WeatherDao
+import com.example.weatherapp.data.db.WeatherDatabase
 import com.example.weatherapp.data.repository.WeatherRepository
 import com.example.weatherapp.data.repository.WeatherRepositoryImpl
 import com.example.weatherapp.util.Constants
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -17,7 +22,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class) // These dependencies will live as long as the application.
 object AppModule {
-
     @Provides
     @Singleton // We want a single instance of OkHttpClient throughout the app.
     fun provideOkHttpClient(): OkHttpClient {
@@ -47,7 +51,23 @@ object AppModule {
     @Provides
     @Singleton
     // When something asks for a WeatherRepository, provide a WeatherRepositoryImpl.
-    fun provideWeatherRepository(apiService: WeatherApiService): WeatherRepository {
-        return WeatherRepositoryImpl(apiService)
+    fun provideWeatherRepository(apiService: WeatherApiService, dao: WeatherDao): WeatherRepository {
+        return WeatherRepositoryImpl(apiService, dao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideWeatherDatabase(@ApplicationContext context: Context): WeatherDatabase {
+        return Room.databaseBuilder(
+            context,
+            WeatherDatabase::class.java,
+            "weather_database.db"
+        ).build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideWeatherDao(database: WeatherDatabase): WeatherDao {
+        return database.weatherDao()
     }
 }

@@ -8,11 +8,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import com.bumptech.glide.Glide
 import com.example.weatherapp.R
-import com.example.weatherapp.data.model.WeatherResponse
 import com.example.weatherapp.databinding.ActivityMainBinding
 import com.example.weatherapp.util.Constants
 import com.example.weatherapp.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
+import com.example.weatherapp.data.db.WeatherEntity
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -43,12 +43,12 @@ class MainActivity : AppCompatActivity() {
             when (resource) {
                 is Resource.Success -> {
                     binding.progressBar.visibility = View.GONE
-                    // Update the UI with the successful data
-                    updateUI(resource.data)
+                    updateUI(resource.data) // Pass WeatherEntity to updateUI
                 }
                 is Resource.Error -> {
                     binding.progressBar.visibility = View.GONE
-                    updateUI(null) // Clear previous data
+                    // If there is an error, but we have old data, updateUI with it
+                    updateUI(resource.data)
                     Toast.makeText(this, resource.message, Toast.LENGTH_LONG).show()
                 }
                 is Resource.Loading -> {
@@ -57,16 +57,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    private fun updateUI(weather: WeatherResponse?) {
-        // Since we are using Data Binding, we can pass the data to the XML.
-        // For Glide, we still need to handle it programmatically.
-        binding.tvCity.text = weather?.name ?: "..."
-        binding.tvTemperature.text = weather?.main?.temp?.let { "%.0f°C".format(it) } ?: ""
-        binding.tvDescription.text = weather?.weather?.firstOrNull()?.description ?: ""
+    private fun updateUI(weather: WeatherEntity?) {
+        binding.tvCity.text = weather?.cityName ?: "..."
+        binding.tvTemperature.text = weather?.temperature?.let { "%.0f°C".format(it) } ?: ""
+        binding.tvDescription.text = weather?.description ?: ""
 
-        weather?.weather?.firstOrNull()?.icon?.let { iconCode ->
-            val iconUrl = "${Constants.BASE_IMAGE_URL}${iconCode}@2x.png"
-            Glide.with(this).load(iconUrl).into(binding.ivWeatherIcon)
-        } ?: binding.ivWeatherIcon.setImageDrawable(null) // Clear image if data is null
+        weather?.iconCode?.let { iconCode ->
+            if (iconCode.isNotEmpty()) {
+                val iconUrl = "${Constants.BASE_IMAGE_URL}${iconCode}@2x.png"
+                Glide.with(this).load(iconUrl).into(binding.ivWeatherIcon)
+            } else {
+                binding.ivWeatherIcon.setImageDrawable(null)
+            }
+        } ?: binding.ivWeatherIcon.setImageDrawable(null)
     }
 }

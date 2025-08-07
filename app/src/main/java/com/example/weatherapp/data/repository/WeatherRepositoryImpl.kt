@@ -1,33 +1,54 @@
 package com.example.weatherapp.data.repository
 
 import com.example.weatherapp.data.api.WeatherApiService
-import com.example.weatherapp.data.model.WeatherResponse
+import com.example.weatherapp.data.db.WeatherDao
+import com.example.weatherapp.data.db.WeatherEntity
 import com.example.weatherapp.util.Resource
-import java.io.IOException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import javax.inject.Inject
 
-// Implementation of the WeatherRepository.
-// It takes the WeatherApiService as a dependency.
-class WeatherRepositoryImpl(private val apiService: WeatherApiService) : WeatherRepository {
+class WeatherRepositoryImpl @Inject constructor(
+    private val apiService: WeatherApiService,
+    private val dao: WeatherDao
+) : WeatherRepository {
 
-    override suspend fun getCurrentWeather(cityName: String, apiKey: String): Resource<WeatherResponse> {
-        return try {
-            val response = apiService.getCurrentWeather(cityName, apiKey)
-            if (response.isSuccessful) {
-                // If the response body is not null, wrap it in a Success resource.
-                response.body()?.let {
-                    return Resource.Success(it)
-                }
-                    ?: Resource.Error("Response body is null") // Handle the unlikely case of a null body.
+    override fun getCurrentWeather(cityName: String, apiKey: String): Flow<Resource<WeatherEntity>> = flow {
+        emit(Resource.Loading())
+
+        val cachedWeather = dao.getWeatherByCity(cityName).first()
+
+        try {
+            val remoteWeather = apiService.getCurrentWeather(cityName, apiKey)
+            if (remoteWeather.isSuccessful && remoteWeather.body() != null) {
+                val weatherData = remoteWeather.body()!!
+                val weatherEntity = WeatherEntity(
+                    cityName = weatherData.name,
+                    temperature = weatherData.main.temp,
+                    description = weatherData.weather.firstOrNull()?.description ?: "N/A",
+                    iconCode = weatherData.weather.firstOrNull()?.icon ?: "",
+                    timestamp = System.currentTimeMillis()
+                )
+                dao.insertWeather(weatherEntity)
+
+                emit(Resource.Success(weatherEntity))
+
             } else {
-                // If the server responded with an error code.
-                Resource.Error("API Error: ${response.message()}")
+                // Network call failed, but we might have cached data.
+                if (cachedWeather != null) {
+                    emit(Resource.Success(cachedWeather)) // Show stale data if network fails
+                } else {
+                    emit(Resource.Error("API Error: ${remoteWeather.message()}"))
+                }
             }
-        } catch (e: IOException) {
-            // Handles network errors, like no internet connection.
-            Resource.Error("Network Error: Please check your internet connection.")
         } catch (e: Exception) {
-            // Handles other unexpected errors.
-            Resource.Error("An unexpected error occurred: ${e.localizedMessage}")
+            // Network exception, but we might have cached data.
+            if (cachedWeather != null) {
+                emit(Resource.Success(cachedWeather)) // Show stale data if network fails
+            } else {
+                emit(Resource.Error("Network Error: Could not connect to the server."))
+            }
         }
     }
 }
