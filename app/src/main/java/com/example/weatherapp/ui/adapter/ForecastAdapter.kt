@@ -7,7 +7,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.weatherapp.data.db.ForecastEntity
-import com.example.weatherapp.data.model.ForecastItem
 import com.example.weatherapp.databinding.ItemForecastBinding
 import com.example.weatherapp.util.Constants
 import java.time.Instant
@@ -31,11 +30,10 @@ class ForecastAdapter : ListAdapter<ForecastEntity, ForecastAdapter.ForecastView
     class ForecastViewHolder(private val binding: ItemForecastBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: ForecastEntity) { // <-- Parametre tipi ForecastEntity oldu
+        fun bind(item: ForecastEntity) {
             binding.apply {
                 tvForecastTemp.text = "%.0f°C".format(item.temperature)
 
-                // Geri kalan mantık aynı
                 val instant = Instant.ofEpochSecond(item.dt)
                 val dateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
                 val formatter = DateTimeFormatter.ofPattern("EEE, HH:mm", Locale("tr"))
@@ -47,7 +45,7 @@ class ForecastAdapter : ListAdapter<ForecastEntity, ForecastAdapter.ForecastView
         }
     }
 
-    class DiffCallback : DiffUtil.ItemCallback<ForecastEntity>() { // <-- Tipi ForecastEntity oldu
+    class DiffCallback : DiffUtil.ItemCallback<ForecastEntity>() {
         override fun areItemsTheSame(oldItem: ForecastEntity, newItem: ForecastEntity) =
             oldItem.dt == newItem.dt
 

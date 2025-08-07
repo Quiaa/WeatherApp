@@ -2,7 +2,6 @@ package com.example.weatherapp.data.repository
 
 import com.example.weatherapp.data.db.ForecastEntity
 import com.example.weatherapp.data.db.WeatherEntity
-import com.example.weatherapp.data.model.ForecastResponse
 import com.example.weatherapp.util.Resource
 import kotlinx.coroutines.flow.Flow
 

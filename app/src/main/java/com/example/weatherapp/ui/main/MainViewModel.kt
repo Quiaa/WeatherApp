@@ -19,7 +19,6 @@ class MainViewModel @Inject constructor(
     private val weatherRepository: WeatherRepository
 ) : ViewModel() {
 
-    // The LiveData now holds a Resource of WeatherEntity
     private val _weatherState = MutableLiveData<Resource<WeatherEntity>>()
     val weatherState: LiveData<Resource<WeatherEntity>> = _weatherState
     private val _forecastState = MutableLiveData<Resource<List<ForecastEntity>>>()

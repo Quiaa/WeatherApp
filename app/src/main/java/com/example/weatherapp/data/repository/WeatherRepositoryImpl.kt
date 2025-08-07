@@ -57,8 +57,6 @@ class WeatherRepositoryImpl @Inject constructor(
     override fun getForecast(cityName: String, apiKey: String): Flow<Resource<List<ForecastEntity>>> = flow {
         emit(Resource.Loading())
 
-        //We won't first retrieve the cached data and then emit it, because if the network request is successful, we'll display fresh data.
-        // If there's an error, we'll use the cache.
         val cachedForecasts = forecastDao.getForecastsByCity(cityName).first()
 
         try {
