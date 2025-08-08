@@ -2,9 +2,7 @@ package com.example.weatherapp.ui.main
 
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 

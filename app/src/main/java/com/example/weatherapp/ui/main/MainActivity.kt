@@ -19,8 +19,6 @@ import com.example.weatherapp.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import com.example.weatherapp.data.db.WeatherEntity
 import com.example.weatherapp.ui.adapter.ForecastAdapter
-import java.time.Instant
-import java.time.ZoneId
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -95,7 +93,7 @@ class MainActivity : AppCompatActivity() {
             when (resource) {
                 is Resource.Success -> forecastAdapter.submitList(resource.data)
                 is Resource.Error -> {
-                    forecastAdapter.submitList(emptyList())
+                    forecastAdapter.submitList(resource.data ?: emptyList())
                     Toast.makeText(this, "Could not load forecast: ${resource.message}", Toast.LENGTH_SHORT).show()
                 }
                 else -> { /* Loading status is now managed separately */ }

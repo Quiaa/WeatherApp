@@ -69,23 +69,25 @@ class MainViewModel @Inject constructor(
     fun setCity(cityName: String) {
         if (cityName.isNotBlank() && _activeCityName.value.equals(cityName, ignoreCase = true).not()) {
             _activeCityName.value = cityName
-            _selectedDate.value = LocalDate.now() // THE FIX: Reset the selected date to today whenever the city changes.
+            _selectedDate.value = LocalDate.now()
         }
     }
 
     val uniqueDaysState: LiveData<List<LocalDate>> = forecastState.map { resource ->
-        if (resource is Resource.Success) {
-            resource.data?.map {
-                Instant.ofEpochSecond(it.dt).atZone(ZoneId.systemDefault()).toLocalDate()
-            }?.distinct() ?: emptyList()
-        } else {
-            emptyList()
+        val forecastList = when (resource) {
+            is Resource.Success -> resource.data
+            is Resource.Error -> resource.data
+            else -> null
         }
+
+        forecastList?.map {
+            Instant.ofEpochSecond(it.dt).atZone(ZoneId.systemDefault()).toLocalDate()
+        }?.distinct() ?: emptyList()
     }
 
     val isLoading = MediatorLiveData<Boolean>().apply {
         addSource(weatherState) { value = it is Resource.Loading }
-        addSource(filteredForecastState) { value = it is Resource.Loading }
+        addSource(forecastState) { value = it is Resource.Loading }
     }
 
     fun loadWeatherForCurrentLocation() {

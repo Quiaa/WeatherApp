@@ -6,8 +6,6 @@ import com.example.weatherapp.data.db.ForecastEntity
 import com.example.weatherapp.data.db.WeatherDao
 import com.example.weatherapp.data.db.WeatherEntity
 import com.example.weatherapp.data.location.LocationTracker
-import com.example.weatherapp.data.model.ForecastResponse
-import com.example.weatherapp.data.model.WeatherResponse
 import com.example.weatherapp.util.Constants
 import com.example.weatherapp.util.Resource
 import kotlinx.coroutines.flow.Flow
@@ -32,7 +30,6 @@ class WeatherRepositoryImpl @Inject constructor(
             val remoteWeather = apiService.getCurrentWeather(cityName, apiKey)
             if (remoteWeather.isSuccessful && remoteWeather.body() != null) {
                 val weatherData = remoteWeather.body()!!
-
                 val weatherEntity = weatherData.toEntity()
                 weatherDao.insertWeather(weatherEntity)
                 emit(Resource.Success(weatherEntity))
@@ -80,7 +77,6 @@ class WeatherRepositoryImpl @Inject constructor(
             val forecastResponse = apiService.getForecastByCoord(location.latitude, location.longitude, Constants.API_KEY)
             if(forecastResponse.isSuccessful && forecastResponse.body() != null) {
                 forecastDao.deleteForecastsByCity(cityName)
-
                 forecastDao.insertForecasts(forecastResponse.body()!!.toEntityList(cityName))
             }
 
