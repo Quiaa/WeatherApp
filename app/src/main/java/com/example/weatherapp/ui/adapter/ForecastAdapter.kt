@@ -36,7 +36,7 @@ class ForecastAdapter : ListAdapter<ForecastEntity, ForecastAdapter.ForecastView
 
                 val instant = Instant.ofEpochSecond(item.dt)
                 val dateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
-                val formatter = DateTimeFormatter.ofPattern("EEE, HH:mm", Locale("tr"))
+                val formatter = DateTimeFormatter.ofPattern("EEE, HH:mm", Locale("en"))
                 tvForecastDate.text = dateTime.format(formatter)
 
                 val iconUrl = "${Constants.BASE_IMAGE_URL}${item.iconCode}@2x.png"

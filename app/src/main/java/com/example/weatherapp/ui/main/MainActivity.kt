@@ -1,7 +1,6 @@
 package com.example.weatherapp.ui.main
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
@@ -20,11 +19,14 @@ import com.example.weatherapp.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import com.example.weatherapp.data.db.WeatherEntity
 import com.example.weatherapp.ui.adapter.ForecastAdapter
+import java.time.Instant
+import java.time.ZoneId
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var forecastAdapter: ForecastAdapter
+    private lateinit var dayChipManager: DayChipManager
     private val viewModel: MainViewModel by viewModels()
 
     private val requestPermissionLauncher =
@@ -41,12 +43,15 @@ class MainActivity : AppCompatActivity() {
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
         binding.lifecycleOwner = this
+        dayChipManager = DayChipManager(binding.chipGroupDays)
 
         setupRecyclerView()
         checkAndRequestLocationPermission()
 
         observeWeatherState()
-        observeForecastState()
+        observeUniqueDaysState()
+        observeFilteredForecastState()
+        observeLoadingState()
 
         binding.btnSearch.setOnClickListener {
             val cityName = binding.etCityName.text.toString()
@@ -66,7 +71,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
     private fun setupRecyclerView() {
         forecastAdapter = ForecastAdapter()
         binding.rvForecast.apply {
@@ -74,40 +78,40 @@ class MainActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
         }
     }
-
     private fun observeWeatherState() {
         viewModel.weatherState.observe(this) { resource ->
             when (resource) {
-                is Resource.Success -> {
-                    binding.progressBar.visibility = View.GONE
-                    updateUI(resource.data)
-                }
+                is Resource.Success -> updateUI(resource.data)
                 is Resource.Error -> {
-                    binding.progressBar.visibility = View.GONE
                     updateUI(resource.data)
                     Toast.makeText(this, resource.message, Toast.LENGTH_LONG).show()
                 }
-                is Resource.Loading -> {
-                    binding.progressBar.visibility = View.VISIBLE
-                }
+                else -> { /* Loading status is now managed separately */ }
             }
         }
     }
-    private fun observeForecastState() {
-        viewModel.forecastState.observe(this) { resource ->
+    private fun observeFilteredForecastState() {
+        viewModel.filteredForecastState.observe(this) { resource ->
             when (resource) {
-                is Resource.Success -> {
-                    binding.progressBar.visibility = View.GONE
-                    forecastAdapter.submitList(resource.data)
-                }
+                is Resource.Success -> forecastAdapter.submitList(resource.data)
                 is Resource.Error -> {
-                    forecastAdapter.submitList(resource.data ?: emptyList())
-                    Toast.makeText(this, resource.message, Toast.LENGTH_SHORT).show()
+                    forecastAdapter.submitList(emptyList())
+                    Toast.makeText(this, "Could not load forecast: ${resource.message}", Toast.LENGTH_SHORT).show()
                 }
-                is Resource.Loading -> {
-                    binding.progressBar.visibility = View.VISIBLE
-                }
+                else -> { /* Loading status is now managed separately */ }
             }
+        }
+    }
+    private fun observeUniqueDaysState() {
+        viewModel.uniqueDaysState.observe(this) { uniqueDays ->
+            dayChipManager.setupChips(uniqueDays) { selectedDate ->
+                viewModel.selectDate(selectedDate)
+            }
+        }
+    }
+    private fun observeLoadingState() {
+        viewModel.isLoading.observe(this) { isLoading ->
+            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
         }
     }
     private fun updateUI(weather: WeatherEntity?) {

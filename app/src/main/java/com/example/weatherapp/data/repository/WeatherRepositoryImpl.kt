@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
+import com.example.weatherapp.data.mapper.toEntity
+import com.example.weatherapp.data.mapper.toEntityList
 
 class WeatherRepositoryImpl @Inject constructor(
     private val apiService: WeatherApiService,
@@ -30,13 +32,8 @@ class WeatherRepositoryImpl @Inject constructor(
             val remoteWeather = apiService.getCurrentWeather(cityName, apiKey)
             if (remoteWeather.isSuccessful && remoteWeather.body() != null) {
                 val weatherData = remoteWeather.body()!!
-                val weatherEntity = WeatherEntity(
-                    cityName = weatherData.name,
-                    temperature = weatherData.main.temp,
-                    description = weatherData.weather.firstOrNull()?.description ?: "N/A",
-                    iconCode = weatherData.weather.firstOrNull()?.icon ?: "",
-                    timestamp = System.currentTimeMillis()
-                )
+
+                val weatherEntity = weatherData.toEntity()
                 weatherDao.insertWeather(weatherEntity)
                 emit(Resource.Success(weatherEntity))
             } else {
@@ -55,15 +52,8 @@ class WeatherRepositoryImpl @Inject constructor(
             val remoteForecast = apiService.getForecast(cityName, apiKey)
             if (remoteForecast.isSuccessful && remoteForecast.body() != null) {
                 forecastDao.deleteForecastsByCity(cityName)
-                val forecastEntities = remoteForecast.body()!!.list.map { forecastItem ->
-                    ForecastEntity(
-                        ownerCityName = cityName,
-                        dt = forecastItem.dt,
-                        temperature = forecastItem.main.temp,
-                        description = forecastItem.weather.firstOrNull()?.description ?: "N/A",
-                        iconCode = forecastItem.weather.firstOrNull()?.icon ?: ""
-                    )
-                }
+
+                val forecastEntities = remoteForecast.body()!!.toEntityList(cityName)
                 forecastDao.insertForecasts(forecastEntities)
                 emit(Resource.Success(forecastEntities))
             } else {
@@ -85,40 +75,19 @@ class WeatherRepositoryImpl @Inject constructor(
             val weatherBody = weatherResponse.body()!!
             val cityName = weatherBody.name
 
-            weatherDao.insertWeather(weatherBody.toWeatherEntity())
+            weatherDao.insertWeather(weatherBody.toEntity())
 
             val forecastResponse = apiService.getForecastByCoord(location.latitude, location.longitude, Constants.API_KEY)
             if(forecastResponse.isSuccessful && forecastResponse.body() != null) {
                 forecastDao.deleteForecastsByCity(cityName)
-                forecastDao.insertForecasts(forecastResponse.body()!!.toForecastEntityList(cityName))
+
+                forecastDao.insertForecasts(forecastResponse.body()!!.toEntityList(cityName))
             }
 
             return Resource.Success(cityName)
 
         } catch (e: Exception) {
             return Resource.Error("Network Error: ${e.message}")
-        }
-    }
-
-    private fun WeatherResponse.toWeatherEntity(): WeatherEntity {
-        return WeatherEntity(
-            cityName = this.name,
-            temperature = this.main.temp,
-            description = this.weather.firstOrNull()?.description ?: "",
-            iconCode = this.weather.firstOrNull()?.icon ?: "",
-            timestamp = System.currentTimeMillis()
-        )
-    }
-
-    private fun ForecastResponse.toForecastEntityList(cityName: String): List<ForecastEntity> {
-        return this.list.map {
-            ForecastEntity(
-                ownerCityName = cityName,
-                dt = it.dt,
-                temperature = it.main.temp,
-                description = it.weather.firstOrNull()?.description ?: "",
-                iconCode = it.weather.firstOrNull()?.icon ?: ""
-            )
         }
     }
 }
