@@ -71,7 +71,7 @@ class MainActivity : AppCompatActivity() {
         forecastAdapter = ForecastAdapter()
         binding.rvForecast.apply {
             adapter = forecastAdapter
-            layoutManager = LinearLayoutManager(this@MainActivity)
+            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
         }
     }
 
